@@ -10,9 +10,7 @@ case object Plus extends Token
 case object Times extends Token
 final case class Literal(str: String) extends Token
 
-
 object Tokenizer {
-
 
   @tailrec
   private def helper(str: String, acc: List[Token]): Either[String, List[Token]] = {
@@ -32,7 +30,6 @@ object Tokenizer {
 
   // "1 + 1" -> List(Literal("1"), Plus, Literal("1"))
   def tokenize(input: String): Either[String, List[Token]] = {
-
     helper(input, Nil)
   }
 
