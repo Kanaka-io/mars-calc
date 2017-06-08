@@ -1,42 +1,24 @@
 package calc
 
-import scala.annotation.tailrec
-
-
-
-sealed trait HalfExpr {
-  def toExpr(rhs: Expr): Expr
-}
-
-final case class HalfAdd(lhs: Expr) extends HalfExpr {
-  def toExpr(rhs: Expr) = Add(lhs, rhs)
-}
-final case class HalfMult(lhs: Expr) extends HalfExpr {
-  def toExpr(rhs: Expr) = Mult(lhs, rhs)
-}
-
-
 
 
 object Parser {
 
-  @tailrec
-  private def helper(tokens: List[Token], stack: List[HalfExpr], last: Option[Expr]): Either[String, Expr] = {
-    if(tokens.isEmpty && stack.isEmpty && last.nonEmpty) Right(last.get)
-    else {
-      (tokens, last) match {
-        case (Literal(x) :: Nil, None)           => helper(Nil, stack, Some(Constant(x.toInt)))
-        case (Literal(x) :: Plus :: tail, None)  => helper(tail, HalfAdd(Constant(x.toInt)) :: stack, None)
-        case (Literal(x) :: Times :: tail, None) => helper(tail, HalfMult(Constant(x.toInt)) :: stack, None)
-        case (Nil, Some(expr))                   => helper(Nil, stack.tail, Some(stack.head.toExpr(expr)))
-        case (x :: _, _)                         => Left(s"Unexpected token $x")
-        case (Nil, None)                         => Left("Unexpected end of input")
-      }
-    }
-  }
+  type Result = Option[Either[String, Expr]]
 
   def parse(tokens: List[Token]): Either[String, Expr] = 
-    helper(tokens, Nil, None)
+    tokens              // 1 + 4 * 2
+      .sliding(2, 2)    // Iterator(List(1, +), List(4, *), List(2))
+      .foldRight[Result](None){ (p, e) => (p, e) match {
+          case (_, err @ Some(Left(_))) => err
+          case (Literal(x) :: Nil, None) => Some(Right(Constant(x.toInt)))
+          case (Literal(x) :: Plus :: _, Some(Right(expr))) => Some(Right(Add(Constant(x.toInt), expr)))    
+          case (Literal(x) :: Times :: _, Some(Right(expr))) => Some(Right(Mult(Constant(x.toInt), expr)))
+          case ( x, _ ) => Some(Left(s"Unexpected token ${x.last}"))
+        }
+      }
+      .getOrElse(Left("Unexpected end of input"))
+
 }
 
 object Calculator {
